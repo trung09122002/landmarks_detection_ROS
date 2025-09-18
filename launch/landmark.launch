@@ -1,0 +1,27 @@
+<launch>
+  <!-- Realsense driver (nếu bạn chưa chạy ở nơi khác) -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="align_depth" value="true"/>
+    <arg name="enable_accel" value="false"/>
+    <arg name="enable_gyro"  value="false"/>
+  </include>
+
+  <!-- Node landmarks -->
+  <node name="landmarks_detection" pkg="landmarks_detection" type="landmark.py" output="screen">
+    <param name="yolo_model" value="$(find landmarks_detection)/weights/last.pt"/>
+    <param name="codebook"   value="$(find landmarks_detection)/codebook/codebook_kNN.joblib"/>
+    <param name="idf"        value="$(find landmarks_detection)/codebook/idf.npy"/>
+    <param name="conf_thres" value="0.25"/>
+    <param name="sim_thresh" value="0.12"/>
+    <param name="use_depth"  value="true"/>
+    <param name="publish_markers" value="true"/>
+    <param name="show_debug" value="true"/>
+    <!-- topics (đúng như realsense2_camera) -->
+    <param name="color_topic" value="/camera/color/image_raw"/>
+    <param name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
+    <param name="info_topic"  value="/camera/color/camera_info"/>
+  </node>
+  <!-- RViz visualization -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find landmarks_detection)/rviz/landmarks.rviz" />
+</launch>
+
