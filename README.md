@@ -4,7 +4,7 @@ A ROS package for real-time landmark detection and recognition using YOLO object
 
 ## 📋 Overview
 
-This ROS package provides a node that combines YOLO v5 object detection with Bag-of-Visual-Words (BoVW) for landmark recognition. It processes RGB-D data from Intel RealSense camera and publishes detected landmarks as custom ROS messages for integration with SLAM systems.
+This ROS package provides a node that combines YOLO11 object detection with Bag-of-Visual-Words (BoVW) for landmark recognition. It processes RGB-D data from Intel RealSense camera and publishes detected landmarks as custom ROS messages for integration with SLAM systems.
 
 ## ✨ Features
 
