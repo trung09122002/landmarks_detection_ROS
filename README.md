@@ -8,7 +8,7 @@ This ROS package provides a node that combines YOLO v5 object detection with Bag
 
 ## ✨ Features
 
-- **Real-time landmark detection** using YOLO v5
+- **Real-time landmark detection** using YOLO11
 - **Bag-of-Visual-Words (BoVW)** for landmark recognition  
 - **RGB-D support** with Intel RealSense camera
 - **Custom ROS messages** (`landmark` and `landmark_array`)
@@ -41,7 +41,7 @@ pip install joblib
 ```bash
 cd ~/landmarks_detection_ROS/src
 # Clone your repository here
-cd ~/catkin_ws
+cd ~/landmarks_detection_ROS
 catkin_make
 source devel/setup.bash
 ```
@@ -57,22 +57,22 @@ pip install ultralytics opencv-python scikit-learn joblib
 
 ```bash
 # Source your workspace
-source ~/catkin_ws/devel/setup.bash
+source ~/landmarks_detection_ROS/devel/setup.bash
 
 # Launch with RealSense camera
-roslaunch landmarks_detection_ROS landmark.launch
+roslaunch landmarks_detection landmark.launch
 ```
 
 ### Launch only the detection node (if camera is already running):
 
 ```bash
-rosrun landmarks_detection_ROS landmark.py
+rosrun landmarks_detection landmark.py
 ```
 
 ### Visualize in RViz:
 
 ```bash
-rosrun rviz rviz -d $(rospack find landmarks_detection_ROS)/rviz/landmarks.rviz
+rosrun rviz rviz -d $(rospack find landmarks_detection)/rviz/landmarks.rviz
 ```
 
 ## ⚙️ Configuration
@@ -82,9 +82,9 @@ rosrun rviz rviz -d $(rospack find landmarks_detection_ROS)/rviz/landmarks.rviz
 Edit `launch/landmark.launch` to customize:
 
 ```xml
-<param name="yolo_model" value="$(find landmarks_detection_ROS)/weights/last.pt"/>
-<param name="codebook"   value="$(find landmarks_detection_ROS)/codebook/codebook_kNN.joblib"/>
-<param name="idf"        value="$(find landmarks_detection_ROS)/codebook/idf.npy"/>
+<param name="yolo_model" value="$(find landmarks_detection)/weights/last.pt"/>
+<param name="codebook"   value="$(find landmarks_detection)/codebook/codebook_kNN.joblib"/>
+<param name="idf"        value="$(find landmarks_detection)/codebook/idf.npy"/>
 <param name="conf_thres" value="0.25"/>      <!-- YOLO confidence threshold -->
 <param name="sim_thresh" value="0.12"/>      <!-- BoVW similarity threshold -->
 <param name="use_depth"  value="true"/>      <!-- Enable depth data -->
@@ -209,7 +209,7 @@ landmarks_detection_ROS/
 1. **Package not found:**
 ```bash
 # Make sure to source the workspace
-source ~/catkin_ws/devel/setup.bash
+source ~/landmarks_detection_ROS/devel/setup.bash
 # Verify package is found
 rospack find landmarks_detection_ROS
 ```
@@ -240,7 +240,7 @@ chmod +x src/landmark.py
 6. **Message generation errors:**
 ```bash
 # Rebuild the workspace
-cd ~/catkin_ws
+cd ~/landmarks_detection_ROS
 catkin_make clean
 catkin_make
 source devel/setup.bash
