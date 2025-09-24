@@ -9,6 +9,7 @@ from std_msgs.msg import Header
 from visualization_msgs.msg import Marker, MarkerArray
 from cv_bridge import CvBridge
 import cv2
+import joblib
 
 from ultralytics import YOLO
 from sklearn.metrics.pairwise import cosine_similarity
@@ -18,6 +19,7 @@ from landmarks_detection_ROS.msg import landmark, landmark_array
 
 # ==== Config ====
 import rospkg
+
 rospack = rospkg.RosPack()
 package_path = rospack.get_path('landmarks_detection')
 
@@ -42,7 +44,6 @@ bridge = CvBridge()
 class BoVW:
     def __init__(self, codebook_path, idf_path):
         # load KMeans & IDF
-        import joblib
         self.kmeans = joblib.load(codebook_path)
         self.idf = np.load(idf_path).astype(np.float32)  # shape (K,)
         self.K = self.kmeans.n_clusters
@@ -230,12 +231,12 @@ class Node:
                     m.pose.position.z = 1.0
                 m.scale.z = 0.08
                 m.color.r, m.color.g, m.color.b, m.color.a = (1.0,1.0,0.0,1.0)
-                m.text = f"LM#{lm_id} {cls_name} s={sim:.2f}"
+                m.text = f"ID#{lm_id} {cls_name} s={sim:.2f}"
                 markers.append(m)
 
             # vẽ nhanh cho debug (rqt_image_view sẽ thấy)
             cv2.rectangle(im,(x1,y1),(x2,y2),(0,255,0),2)
-            cv2.putText(im,f"LM#{lm_id} {cls_name} s={sim:.2f}",(x1,max(15,y1-5)),
+            cv2.putText(im,f"ID#{lm_id} {cls_name} s={sim:.2f}",(x1,max(15,y1-5)),
                         cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
 
         # Publish landmarks

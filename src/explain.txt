@@ -1,0 +1,115 @@
+HƯỚNG DẪN TỔNG QUAN RE-ID (YOLO + BoVW) — landmarks_detection
+=============================================================
+
+Mục tiêu
+--------
+- Ổn định ID cho landmark theo thời gian khi camera di chuyển hoặc quay lại vị trí cũ.
+- Hạn chế nhảy ID, giảm gộp nhầm, tận dụng depth (nếu có) để ưu tiên/loại bớt ứng viên.
+
+Các khối tính năng
+------------------
+1) Debounce chống nhảy ID
+   - Giữ lại ID cũ trong vài frame nếu độ giống (similarity) tạm thời thấp.
+   - Tham số:
+     * use_debounce        (bool)  | Bật/tắt. Mặc định: true
+     * debounce_window     (int)   | Số frame giữ ID cũ khi không match. Mặc định: 5
+     * center_match_pix    (int)   | Bán kính (px) để nối detection hiện tại với tâm bbox khung trước. Mặc định: 60
+   - Gợi ý:
+     * Nếu ID vẫn nhảy → tăng debounce_window lên 7–9.
+     * Nếu “kẹt” ID sai quá lâu → giảm debounce_window.
+
+2) Prototype snapshots (nhiều vector/ID)
+   - Lưu nhiều snapshot BoVW cho mỗi ID, dùng trung bình L2-normalized làm prototype.
+   - Tham số:
+     * use_prototype       (bool)  | Bật/tắt. Mặc định: true
+     * prototype_maxlen    (int)   | Số snapshot tối đa/ID. Mặc định: 7
+   - Gợi ý:
+     * Tăng prototype_maxlen (9–15) khi cảnh đa dạng nhiều góc nhìn.
+     * Giảm nếu thiếu RAM/CPU hoặc muốn phản ứng nhanh.
+
+3) Ngưỡng theo lớp (Per-class thresholds)
+   - Đặt ngưỡng similarity riêng cho từng lớp để giảm gộp nhầm.
+   - Tham số:
+     * use_per_class_th    (bool)  | Bật/tắt. Mặc định: true
+     * sim_thresh          (float) | Ngưỡng nền (áp dụng khi lớp không có ngưỡng riêng). Mặc định: 0.12
+     * class_thresholds    (yaml)  | Map {class_name: threshold}. Ví dụ:
+         <rosparam param="class_thresholds">
+           bottle: 0.10
+           chair:  0.16
+           tv:     0.22
+         </rosparam>
+   - Gợi ý:
+     * Lớp dễ lẫn → đặt ngưỡng cao hơn (0.18–0.30).
+     * Nếu tách ID quá nhiều → hạ ngưỡng cho lớp đó.
+
+4) Spatial scoring (appearance + 3D + recency)
+   - Tổng hợp điểm: cosine + gần 3D + độ “mới”.
+   - Tham số:
+     * use_spatial_score   (bool)  | Mặc định: false
+     * w_app               (float) | Trọng số cosine. Mặc định: 0.55
+     * w_dist              (float) | Trọng số 3D distance. Mặc định: 0.25
+     * w_age               (float) | Trọng số recency. Mặc định: 0.20
+     * age_tau_sec         (float) | Hằng thời gian recency. Mặc định: 5.0
+     * dist_clip_m         (float) | Cắt phạt khoảng cách ở m mét. Mặc định: 1.0
+   - Gợi ý:
+     * Depth sạch → bật use_spatial_score=true.
+     * Depth nhiễu → tăng dist_clip_m hoặc giảm w_dist.
+     * Muốn “ghi nhớ” lâu hơn → tăng age_tau_sec hoặc w_age.
+
+5) Space gating (lọc ứng viên theo khoảng cách 3D)
+   - Chỉ xét ID có |Δxyz| ≤ gate_dist_m.
+   - Tham số:
+     * use_space_gating    (bool)  | Mặc định: false
+     * gate_dist_m         (float) | Ngưỡng khoảng cách. Mặc định: 0.7
+   - Gợi ý:
+     * Bật khi depth ổn định, ít occlusion.
+     * Nếu bỏ sót do nhiễu → tăng gate_dist_m lên 1.0–1.2.
+
+Luồng xử lý tổng quát
+---------------------
+Color/Depth → YOLO bbox → crop ROI → BoVW (TF → IDF → sqrt(Hellinger) → L2) →
+tìm best ID (cosine; +spatial_score nếu bật) →
+Debounce & quyết định ID →
+cập nhật prototype & meta (xyz/last_seen) →
+publish LandmarkArray/MarkerArray.
+
+Ví dụ cấu hình trong .launch
+----------------------------
+  <param name="sim_thresh" value="0.12"/>
+  <param name="use_debounce"     value="true"/>
+  <param name="debounce_window"  value="5"/>
+  <param name="center_match_pix" value="60"/>
+
+  <param name="use_prototype"    value="true"/>
+  <param name="prototype_maxlen" value="7"/>
+
+  <param name="use_per_class_th" value="true"/>
+  <rosparam param="class_thresholds">
+    bottle: 0.10
+    chair:  0.16
+    tv:     0.22
+  </rosparam>
+
+  <param name="use_spatial_score" value="true"/>
+  <param name="w_app"             value="0.55"/>
+  <param name="w_dist"            value="0.25"/>
+  <param name="w_age"             value="0.20"/>
+  <param name="age_tau_sec"       value="5.0"/>
+  <param name="dist_clip_m"       value="1.0"/>
+
+  <param name="use_space_gating"  value="false"/>
+  <param name="gate_dist_m"       value="0.7"/>
+
+Tối ưu nhanh
+------------
+- ID nhảy khi đứng yên → tăng debounce_window, tăng w_app, hạ w_dist.
+- Gộp nhầm nhiều lớp → tăng ngưỡng class_thresholds, bật space gating.
+- Depth nhiễu → tắt use_space_gating, tăng dist_clip_m, giảm w_dist.
+- FPS thấp → giảm prototype_maxlen, giảm nfeatures SIFT, dùng YOLO nhỏ hơn.
+
+Quy trình tuning
+----------------
+1) Bật: debounce + prototype + per-class. Giữ spatial_score/space_gating = false.
+2) Nếu vẫn nhảy ID → bật spatial_score, tinh chỉnh w_app/w_dist/w_age.
+3) Nếu cần lọc mạnh theo 3D → bật space_gating, chỉnh gate_dist_m.
+4) Log CSV (id, cls, sim, x,y,z, timestamp) để đánh giá ngưỡng.
