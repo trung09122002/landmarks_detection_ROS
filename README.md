@@ -1,4 +1,4 @@
-# landmarks_detection_ROS
+# landmarks_detection
 
 A ROS package for real-time landmark detection and recognition using YOLO object detection and Bag-of-Visual-Words (BoVW) approach with Intel RealSense camera.
 
@@ -15,6 +15,12 @@ This ROS package provides a node that combines YOLO11 object detection with Bag-
 - **RViz visualization** support with markers
 - **Configurable parameters** for detection thresholds
 - **SIFT feature extraction** for robust landmark matching
+- **Advanced re-identification (re-ID)** with multiple algorithms:
+  - **ID debouncing** to prevent rapid ID switching
+  - **Prototype snapshots** for robust feature matching
+  - **Class-specific thresholds** for optimized detection per object type
+  - **Spatial scoring** combining appearance, 3D distance, and temporal recency
+  - **3D spatial gating** for efficient candidate filtering
 
 ## 🔧 Dependencies
 
@@ -53,7 +59,7 @@ pip install ultralytics opencv-python scikit-learn joblib
 
 ## 🚀 Usage
 
-### Launch the landmark detection node:
+### Launch the basic landmark detection node:
 
 ```bash
 # Source your workspace
@@ -63,10 +69,21 @@ source ~/landmarks_detection_ROS/devel/setup.bash
 roslaunch landmarks_detection landmark.launch
 ```
 
+### Launch the enhanced landmark detection node with re-ID:
+
+```bash
+# Launch with advanced re-identification features
+roslaunch landmarks_detection landmark_update.launch
+```
+
 ### Launch only the detection node (if camera is already running):
 
 ```bash
+# Basic version
 rosrun landmarks_detection landmark.py
+
+# Enhanced version with re-ID
+rosrun landmarks_detection landmark_update.py
 ```
 
 ### Visualize in RViz:
@@ -111,13 +128,33 @@ Edit `launch/landmark.launch` to customize:
 | `depth_kernel` | int | 7 | Depth processing kernel size |
 | `publish_markers` | bool | true | Enable RViz visualization |
 
+### Enhanced Re-ID Parameters (landmark_update.launch)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `use_debounce` | bool | true | Enable ID debouncing to prevent ID switching |
+| `debounce_window` | int | 5 | Number of frames to keep old ID if match is weak |
+| `center_match_pix` | int | 60 | Pixel radius for center-based ID assignment |
+| `use_prototype` | bool | true | Enable prototype snapshots for multiple feature vectors per ID |
+| `prototype_maxlen` | int | 7 | Maximum number of snapshots per landmark |
+| `use_per_class_th` | bool | true | Enable class-specific similarity thresholds |
+| `class_thresholds` | dict | - | Per-class similarity thresholds (bottle: 0.10, chair: 0.16, etc.) |
+| `use_spatial_score` | bool | true | Enable spatial scoring combining appearance, 3D distance, and recency |
+| `w_app` | float | 0.55 | Weight for appearance (cosine similarity) |
+| `w_dist` | float | 0.25 | Weight for 3D distance |
+| `w_age` | float | 0.20 | Weight for temporal recency |
+| `age_tau_sec` | float | 5.0 | Time constant for recency scoring |
+| `dist_clip_m` | float | 1.0 | Distance clipping threshold in meters |
+| `use_space_gating` | bool | true | Enable 3D spatial filtering |
+| `gate_dist_m` | float | 0.7 | Maximum distance for spatial gating |
+
 ## 📡 ROS Interface
 
 ### Published Topics
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/landmarks` | `landmarks_detection_ROS/landmark_array` | Detected landmarks |
+| `/landmarks` | `landmarks_detection/landmark_array` | Detected landmarks |
 | `/landmark_markers` | `visualization_msgs/MarkerArray` | RViz markers |
 
 ### Subscribed Topics
@@ -182,9 +219,11 @@ dataset/
 ```
 landmarks_detection_ROS/
 ├── src/
-│   └── landmark.py              # Main ROS node
+│   ├── landmark.py              # Main ROS node
+│   └── landmark_update.py       # Enhanced ROS node with re-ID
 ├── launch/
-│   └── landmark.launch          # Launch file
+│   ├── landmark.launch          # Basic launch file
+│   └── landmark_update.launch   # Enhanced launch file with re-ID
 ├── msg/
 │   ├── landmark.msg             # Single landmark message
 │   └── landmark_array.msg       # Array of landmarks
@@ -211,7 +250,7 @@ landmarks_detection_ROS/
 # Make sure to source the workspace
 source ~/landmarks_detection_ROS/devel/setup.bash
 # Verify package is found
-rospack find landmarks_detection_ROS
+rospack find landmarks_detection
 ```
 
 2. **Import errors:**
@@ -259,6 +298,37 @@ This will show:
 - BoVW matching scores
 - 3D position calculations
 
+## 🔍 Re-Identification Algorithms
+
+The enhanced `landmark_update.py` node implements sophisticated re-ID algorithms:
+
+### 1. **ID Debouncing**
+- Prevents rapid ID switching when landmarks are temporarily occluded
+- Maintains consistent IDs across frames using spatial proximity
+- Configurable debounce window and center matching radius
+
+### 2. **Prototype Snapshots**
+- Stores multiple feature vectors per landmark ID
+- Improves matching robustness against viewpoint changes
+- Automatically manages snapshot lifecycle with configurable limits
+
+### 3. **Class-Specific Thresholds**
+- Optimized similarity thresholds for different object types
+- Accounts for intra-class vs inter-class feature variations
+- Example: bottles may need lower thresholds than chairs
+
+### 4. **Spatial Scoring**
+- Combines multiple cues for robust re-ID:
+  - **Appearance**: Cosine similarity of BoVW features
+  - **3D Distance**: Euclidean distance in 3D space
+  - **Temporal Recency**: Time-weighted scoring
+- Configurable weights for each component
+
+### 5. **3D Spatial Gating**
+- Pre-filters candidates based on 3D distance
+- Reduces computational load for large scenes
+- Configurable distance thresholds
+
 ## 📝 Notes
 
 - **Feature Detector**: Uses SIFT (128 dimensions) by default
@@ -266,6 +336,7 @@ This will show:
 - **Depth Processing**: Uses median filtering for robust depth estimation
 - **SLAM Integration**: Compatible with Cartographer ROS
 - **Performance**: Optimized for real-time operation
+- **Re-ID**: Advanced algorithms for consistent landmark tracking
 
 ## 🔗 Related Packages
 
