@@ -47,8 +47,7 @@ CENTER_MATCH_PIX    = rospy.get_param("~center_match_pix", 60)    # bán kính b
 USE_PROTOTYPE       = rospy.get_param("~use_prototype", True)     # dùng nhiều snapshot/prototype mỗi ID
 PROTOTYPE_MAXLEN    = rospy.get_param("~prototype_maxlen", SNAP_MAX)
 
-USE_PER_CLASS_TH    = rospy.get_param("~use_per_class_th", True)  # ngưỡng theo lớp
-# ví dụ: {"bottle":0.10,"chair":0.16,"tv":0.22}
+USE_PER_CLASS_TH    = rospy.get_param("~use_per_class_th", False)  # ngưỡng theo lớp. ví dụ: {"bottle":0.10,"chair":0.16,"tv":0.22}
 CLASS_THRESH        = rospy.get_param("~class_thresholds", {})
 
 USE_SPATIAL_SCORE   = rospy.get_param("~use_spatial_score", False) # chấm điểm hợp nhất appearance+3D+recency
@@ -302,7 +301,7 @@ class Node:
         now_ros = rospy.Time.now()
         now_sec = time.time()
 
-        lms = []
+        lms = []                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
         markers = []
         new_prev = []  # sẽ thay prev_centers sau vòng lặp
 
