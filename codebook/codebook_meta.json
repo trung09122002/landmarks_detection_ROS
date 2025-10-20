@@ -1,0 +1,9 @@
+{
+  "k": 4096,
+  "desc_dim": 128,
+  "resize_max": 640,
+  "max_total": 2000000,
+  "batch_size": 8192,
+  "max_feats_per_img": 800,
+  "seed": 0
+}

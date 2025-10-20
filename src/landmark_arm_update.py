@@ -21,26 +21,32 @@ except Exception:
     torch = None
 
 from ultralytics import YOLO
-from sklearn.metrics.pairwise import cosine_similarity
+# from sklearn.metrics.pairwise import cosine_similarity
 
 # ===== messages
 from landmarks_detection_ROS.msg import landmark, landmark_array
 
 # ==== Config & paths (ARM-safe defaults)
+
 import rospkg
-
 rospack = rospkg.RosPack()
-# Prefer local package assets to avoid cross-package path confusion on devices
-try:
-    package_path = rospack.get_path(rospy.get_param("~ros_package_name", "landmarks_detection_ROS"))
+package_path = rospack.get_path("landmarks_detection")
+
+# === Cosine similarity thuần numpy (thay cho sklearn.metrics.pairwise.cosine_similarity) ===
+def cos_sim(a: np.ndarray, b: np.ndarray) -> float:
+    """
+    Trả về cosine similarity giữa 2 vector a và b.
+    Không phụ thuộc sklearn (phù hợp Jetson Nano).
+    """
+    na = np.linalg.norm(a) + 1e-9
+    nb = np.linalg.norm(b) + 1e-9
+    return float(np.dot(a, b) / (na * nb))
 
 
-except rospkg.ResourceNotFound:
-    package_path = rospack.get_path("landmarks_detection")
 # Model/codebook defaults (override via ROS params in launch)
 YOLO_MODEL_PATH = rospy.get_param("~yolo_model", f"{package_path}/weights/last.pt")
-CODEBOOK_PATH   = rospy.get_param("~codebook",   f"{package_path}/codebook/codebook_kNN.joblib")
-IDF_PATH        = rospy.get_param("~idf",        f"{package_path}/codebook/idf.npy")
+CODEBOOK_PATH   = rospy.get_param("~codebook",   f"{package_path}/codebook/codebook_centers.npy")
+IDF_PATH        = rospy.get_param("~idf",        f"{package_path}/codebook/codebook_idf.npy")
 
 # Jetson-specific knobs
 CUDA_OK         = TORCH_AVAILABLE and torch.cuda.is_available()
@@ -92,41 +98,79 @@ bridge = CvBridge()
 # BoVW encoder
 # =========================
 class BoVW:
-    def __init__(self, codebook_path, idf_path):
-        self.kmeans = joblib.load(codebook_path)
-        self.idf = np.load(idf_path).astype(np.float32)
-        self.K = int(self.kmeans.n_clusters)
-        assert self.idf.shape[0] == self.K, "IDF size != n_clusters"
-        # detector: SIFT mặc định, SURF nếu bật (ARM: keep lightweight)
-        if USE_SURF and hasattr(cv2, "xfeatures2d"):
-            self.det = cv2.xfeatures2d.SURF_create(hessianThreshold=400)
-            self.desc_dim = 64
-        else:
-            # SIFT may not be compiled in some OpenCV builds; try/except
-            try:
-                self.det = cv2.SIFT_create(nfeatures=int(SIFT_NFEAT))
-                self.desc_dim = 128
-            except Exception as e:
-                rospy.logwarn_throttle(10.0, f"SIFT unavailable on this build: {e}. BoVW may not work with current codebook.")
-                # Fallback to ORB to avoid crash; descriptor dims won't match trained codebook
-                self.det = cv2.ORB_create(nfeatures=int(max(500, SIFT_NFEAT)))
-                self.desc_dim = 32
+    def __init__(self, centers_path, idf_path):
+        self.centers = None
+        self.idf = None
+        self.K = 0
+        self.desc_dim = 128
+
+        # Load centers (.npy) & idf (.npy)
+        try:
+            if os.path.isfile(centers_path) and centers_path.endswith(".npy"):
+                self.centers = np.load(centers_path).astype(np.float32)   # (K,128)
+            else:
+                rospy.logwarn("codebook path không phải .npy: '%s'. Hãy dùng *_centers.npy do create_codebook_arm.py sinh ra.", centers_path)
+        except Exception as e:
+            rospy.logwarn("Không load được centers '%s': %s", centers_path, str(e))
+
+        try:
+            if os.path.isfile(idf_path) and idf_path.endswith(".npy"):
+                self.idf = np.load(idf_path).astype(np.float32)           # (K,)
+            else:
+                rospy.logwarn("idf path không phải .npy: '%s'. Hãy dùng *_idf.npy", idf_path)
+        except Exception as e:
+            rospy.logwarn("Không load được idf '%s': %s", idf_path, str(e))
+
+        if self.centers is not None:
+            self.K = int(self.centers.shape[0])
+            self.desc_dim = int(self.centers.shape[1])
+        if self.idf is not None and self.K > 0 and self.idf.shape[0] != self.K:
+            rospy.logwarn("IDF size (%d) != K (%d). Sẽ bỏ qua IDF.", self.idf.shape[0], self.K)
+            self.idf = None
+
+        # detector: SIFT -> 128-D; nếu thiếu SIFT sẽ fallback ORB (32-D) nhưng khi đó BoVW sẽ bỏ qua (mismatch dim)
+        try:
+            self.det = cv2.SIFT_create(nfeatures=int(SIFT_NFEAT))
+            self.desc_dim_expected = 128
+        except Exception as e:
+            rospy.logwarn_throttle(10.0, "SIFT unavailable: %s. Sẽ dùng ORB (32-D).", str(e))
+            self.det = cv2.ORB_create(nfeatures=int(max(500, SIFT_NFEAT)))
+            self.desc_dim_expected = 32
+
+        if self.centers is None:
+            rospy.logwarn("BoVW tạm TẮT vì không có centers.npy. YOLO vẫn chạy bình thường.")
 
     def roi_desc(self, gray):
         kps, desc = self.det.detectAndCompute(gray, None)
         return desc
 
-    def tfidf(self, desc):
-        if desc is None or len(desc) == 0:
+    def _assign_words(self, desc: np.ndarray):
+        # Gán mỗi descriptor về trung tâm gần nhất bằng numpy
+        if desc is None or len(desc) == 0 or self.centers is None:
             return None
-        labels = self.kmeans.predict(desc.astype(np.float32))
-        h, _ = np.histogram(labels, bins=np.arange(self.K+1))
-        h = h.astype(np.float32)
-        # TF -> IDF -> Hellinger -> L2
-        s = h.sum()
+        if desc.shape[1] != self.desc_dim_expected or self.centers.shape[1] != self.desc_dim_expected:
+            # Mismatch chiều descriptor → bỏ qua để không crash
+            return None
+        desc = desc.astype(np.float32, copy=False)                  # (n,D)
+        a2 = np.sum(desc * desc, axis=1, keepdims=True)             # (n,1)
+        b2 = np.sum(self.centers * self.centers, axis=1, keepdims=True).T  # (1,K)
+        ab = desc @ self.centers.T                                  # (n,K)
+        dist2 = a2 + b2 - 2.0 * ab                                  # (n,K)
+        return np.argmin(dist2, axis=1)                             # (n,)
+
+    def tfidf(self, desc):
+        if self.centers is None:
+            return None
+        words = self._assign_words(desc)
+        if words is None:
+            return None
+        h = np.bincount(words, minlength=self.K).astype(np.float32) # (K,)
+        s = float(h.sum())
         if s > 0:
-            h /= s
-        h *= self.idf
+            h /= s  # TF
+        if self.idf is not None and self.idf.shape[0] == self.K:
+            h *= self.idf  # TF-IDF
+        # Hellinger + L2
         h = np.sqrt(np.maximum(h, 0))
         n = np.linalg.norm(h) + 1e-9
         return h / n
@@ -163,7 +207,7 @@ class Memory:
             return self.vecs[lid]
 
     def _cosine(self, a, b):
-        return float(cosine_similarity(a.reshape(1,-1), b.reshape(1,-1))[0,0])
+        return cos_sim(a, b)
 
     def _spatial_score(self, sim, xyz, lid):
         s_app = max(0.0, min(1.0, sim))

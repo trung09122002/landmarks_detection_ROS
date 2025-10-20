@@ -10,8 +10,8 @@
   <node pkg="landmarks_detection" type="landmark_arm_update.py" name="landmarks_detection" output="screen">
     <!-- Đường dẫn model/codebook -->
     <param name="yolo_model" value="$(env HOME)/weights/last.pt"/>
-    <param name="codebook"   value="$(env HOME)/codebook/codebook_kNN.joblib"/>
-    <param name="idf"        value="$(env HOME)/codebook/idf.npy"/>
+    <param name="codebook"   value="$(env HOME)/codebook/codebook_centers.npy"/>
+    <param name="idf"        value="$(env HOME)/codebook/codebook_idf.npy"/>
 
     <!-- Detection -->
     <param name="conf_thres" value="0.5"/>
