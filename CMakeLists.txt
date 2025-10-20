@@ -40,5 +40,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   src/landmark.py
   src/landmark_update.py
+  src/landmark_arm.py
+  src/landmark_arm_update.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

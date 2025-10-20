@@ -1,0 +1,63 @@
+<launch>
+  <!-- RealSense driver -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="align_depth" value="true"/>
+    <arg name="enable_accel" value="false"/>
+    <arg name="enable_gyro"  value="false"/>
+  </include>
+
+  <!-- Node landmarks -->
+  <node pkg="landmarks_detection" type="landmark_arm_update.py" name="landmarks_detection" output="screen">
+    <!-- Đường dẫn model/codebook -->
+    <param name="yolo_model" value="$(env HOME)/weights/last.pt"/>
+    <param name="codebook"   value="$(env HOME)/codebook/codebook_kNN.joblib"/>
+    <param name="idf"        value="$(env HOME)/codebook/idf.npy"/>
+
+    <!-- Detection -->
+    <param name="conf_thres" value="0.5"/>
+
+    <!-- Ngưỡng base cho re-ID (dùng nếu lớp không có ngưỡng riêng) -->
+    <param name="sim_thresh" value="0.12"/>
+
+    <!-- (1) Debounce chống nhảy ID -->
+    <param name="use_debounce"     value="true"/>
+    <param name="debounce_window"  value="5"/>     <!-- số frame giữ ID cũ nếu match yếu -->
+    <param name="center_match_pix" value="60"/>    <!-- bán kính px để gán theo tâm bbox khung trước -->
+
+    <!-- (2) Prototype snapshots (nhiều vector/ID) -->
+    <param name="use_prototype"    value="true"/>
+    <param name="prototype_maxlen" value="7"/>
+
+    <!-- (3) Ngưỡng theo lớp -->
+    <param name="use_per_class_th" value="false"/>
+    <rosparam param="class_thresholds">
+      cone: 0.12
+      fire_extinguisher: 0.12
+    </rosparam>
+
+    <!-- (4) Spatial scoring hợp nhất (appearance + 3D + recency) -->
+    <param name="use_spatial_score" value="true"/>
+    <param name="w_app"             value="0.55"/>  <!-- trọng số cosine -->
+    <param name="w_dist"            value="0.25"/>  <!-- trọng số gần 3D -->
+    <param name="w_age"             value="0.20"/>  <!-- trọng số gần đây -->
+    <param name="age_tau_sec"       value="5.0"/>   <!-- hằng số thời gian cho recency -->
+    <param name="dist_clip_m"       value="1.0"/>   <!-- cắt phạt khoảng cách ở 1 m -->
+
+    <!-- (5) Space gating (lọc ứng viên theo 3D) -->
+    <param name="use_space_gating"  value="true"/>
+    <param name="gate_dist_m"       value="0.7"/>
+
+    <!-- Depth + hiển thị -->
+    <param name="use_depth"         value="true"/>
+    <param name="publish_markers"   value="true"/>
+    <param name="show_debug"        value="true"/>
+
+    <!-- Topics đúng theo realsense2_camera -->
+    <param name="color_topic" value="/camera/color/image_raw"/>
+    <param name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
+    <param name="info_topic"  value="/camera/color/camera_info"/>
+  </node>
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find landmarks_detection)/rviz/landmarks.rviz"/>
+</launch>
