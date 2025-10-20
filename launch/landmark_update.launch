@@ -14,7 +14,7 @@
     <param name="idf"        value="$(env HOME)/codebook/idf.npy"/>
 
     <!-- Detection -->
-    <param name="conf_thres" value="0.25"/>
+    <param name="conf_thres" value="0.5"/>
 
     <!-- Ngưỡng base cho re-ID (dùng nếu lớp không có ngưỡng riêng) -->
     <param name="sim_thresh" value="0.12"/>
@@ -29,7 +29,7 @@
     <param name="prototype_maxlen" value="7"/>
 
     <!-- (3) Ngưỡng theo lớp -->
-    <param name="use_per_class_th" value="true"/>
+    <param name="use_per_class_th" value="false"/>
     <rosparam param="class_thresholds">
       cone: 0.12
       fire_extinguisher: 0.12

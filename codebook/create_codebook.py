@@ -39,7 +39,7 @@ def estimate_idf(paths, kmeans):
     det = create_detector()
     K = kmeans.n_clusters
     df = np.zeros(K, dtype=np.float32)
-    for p in tqdm(paths, desc="Estimating DF/IDF"):
+    for p in tqdm(paths, desc="Estimating TF/IDF"):
         img = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
         if img is None: continue
         kps, d = det.detectAndCompute(img, None)

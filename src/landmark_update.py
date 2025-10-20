@@ -114,7 +114,7 @@ class Memory:
         self.vecs = {}        # id -> deque of vectors (if USE_PROTOTYPE) or single vec
         self.proto = {}       # id -> current prototype (np.array)
         self.meta = {}        # id -> dict(last_xyz, last_seen, last_box)
-        self.maxlen = maxlen
+        self.maxlen = maxlen    
         self.sim_base = sim_thresh_base
 
     def _th_for_class(self, cls_name:str)->float:
