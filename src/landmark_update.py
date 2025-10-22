@@ -13,10 +13,10 @@ import joblib
 from collections import deque, defaultdict
 
 from ultralytics import YOLO
-from sklearn.metrics.pairwise import cosine_similarity
+# from sklearn.metrics.pairwise import cosine_similarity  # Thay thế bằng numpy
 
 # ===== messages (giữ đúng package/msg bạn đang dùng)
-from landmarks_detection_ROS.msg import landmark, landmark_array
+from landmarks_detection.msg import landmark, landmark_array
 
 # ==== Config & paths (giữ logic gốc, thêm param mới)
 import rospkg
@@ -137,7 +137,12 @@ class Memory:
             return self.vecs[lid]  # single vector
 
     def _cosine(self, a, b):
-        return float(cosine_similarity(a.reshape(1,-1), b.reshape(1,-1))[0,0])
+        # Thay thế sklearn cosine_similarity bằng numpy thuần túy
+        a_norm = np.linalg.norm(a)
+        b_norm = np.linalg.norm(b)
+        if a_norm == 0 or b_norm == 0:
+            return 0.0
+        return float(np.dot(a, b) / (a_norm * b_norm))
 
     def _spatial_score(self, sim, xyz, lid):
         """ Optional: score hợp nhất appearance + 3D + recency. """

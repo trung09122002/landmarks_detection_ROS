@@ -5,7 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded: ~
       Splitter Ratio: 0.5
-    Tree Height: 140
+    Tree Height: 371
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Views
@@ -49,18 +49,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        camera_aligned_depth_to_color_frame:
-          Value: true
-        camera_color_frame:
-          Value: true
-        camera_color_optical_frame:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_depth_optical_frame:
-          Value: true
-        camera_link:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -68,15 +56,7 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        camera_link:
-          camera_aligned_depth_to_color_frame:
-            camera_color_optical_frame:
-              {}
-          camera_color_frame:
-            {}
-          camera_depth_frame:
-            camera_depth_optical_frame:
-              {}
+        {}
       Update Interval: 0
       Value: true
     - Class: rviz/Image
@@ -151,7 +131,7 @@ Window Geometry:
   Height: 647
   Hide Left Dock: true
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000049b0000032efc0200000005fb000000160043006f006c006f007200200049006d006100670065000000003b000000a10000001600fffffffb000000100044006900730070006c00610079007300000000e20000010d000000c700fffffffb0000001200530065006c0065006300740069006f006e00000001f5000000830000005c00fffffffb0000000a00560069006500770073000000027e000000ad000000a000fffffffb0000000800540069006d00650000000331000000380000003800ffffff000003250000023100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000001000000000000049b0000032efc0200000005fb000000160043006f006c006f007200200049006d006100670065000000003b000000a10000001600fffffffb000000100044006900730070006c00610079007300000000e20000010d000000c900fffffffb0000001200530065006c0065006300740069006f006e00000001f5000000830000005c00fffffffb0000000a00560069006500770073000000027e000000ad000000a400fffffffb0000000800540069006d00650000000331000000380000003900ffffff000003250000022d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: true
   Time:
@@ -159,5 +139,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 805
-  X: 2024
-  Y: 269
+  X: 706
+  Y: 156

@@ -24,7 +24,7 @@ from ultralytics import YOLO
 # from sklearn.metrics.pairwise import cosine_similarity
 
 # ===== messages
-from landmarks_detection_ROS.msg import landmark, landmark_array
+from landmarks_detection.msg import landmark, landmark_array
 
 # ==== Config & paths (ARM-safe defaults)
 

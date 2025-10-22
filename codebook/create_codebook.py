@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 K = 4096               # số visual words (512–4096 tùy dữ liệu)
 MAX_FEATS_PER_IMG = 800
-IMG_GLOB = "../dataset/train/images/*.jpg"  # thư mục ảnh landmark
+IMG_GLOB = "/home/robotics/landmark_ws/src/landmarks_detection_ROS/dataset/train/images/*.jpg"  # thư mục ảnh landmark
 USE_SURF = False  # True nếu bạn có opencv-contrib và chấp nhận license SURF
 
 def create_detector():
