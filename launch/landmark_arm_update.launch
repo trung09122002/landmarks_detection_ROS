@@ -14,7 +14,7 @@
     <param name="idf"        value="$(env HOME)/codebook/codebook_idf.npy"/>
 
     <!-- Detection -->
-    <param name="conf_thres" value="0.5"/>
+    <param name="conf_thres" value="0.7"/>
 
     <!-- Ngưỡng base cho re-ID (dùng nếu lớp không có ngưỡng riêng) -->
     <param name="sim_thresh" value="0.12"/>
@@ -59,5 +59,5 @@
   </node>
 
   <!-- RViz -->
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find landmarks_detection)/rviz/landmarks.rviz"/>
+  <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find landmarks_detection)/rviz/landmarks.rviz"/> -->
 </launch>
