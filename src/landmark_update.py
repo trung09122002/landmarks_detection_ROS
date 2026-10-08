@@ -16,7 +16,7 @@ from ultralytics import YOLO
 # from sklearn.metrics.pairwise import cosine_similarity  # Thay thế bằng numpy
 
 # ===== messages (giữ đúng package/msg bạn đang dùng)
-from landmarks_detection.msg import landmark, landmark_array
+from landmarks_detection_ROS.msg import landmark, landmark_array
 
 # ==== Config & paths (giữ logic gốc, thêm param mới)
 import rospkg
